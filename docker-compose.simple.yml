@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: mibweb-postgres
+    environment:
+      POSTGRES_DB: mibweb
+      POSTGRES_USER: mibuser
+      POSTGRES_PASSWORD: mibpass123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: mibweb-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redispass123
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # Next.js 应用
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.simple
+    container_name: mibweb-app
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://mibuser:mibpass123@postgres:5432/mibweb
+      - REDIS_URL=redis://:redispass123@redis:6379
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
